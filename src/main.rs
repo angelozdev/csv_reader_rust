@@ -1,4 +1,7 @@
-use std::io;
+use std::{
+    fmt::{self, Display},
+    io,
+};
 
 use csv::Error;
 use serde::Deserialize;
@@ -14,20 +17,31 @@ struct Record {
     defense: u8,
 }
 
-fn read_from_file(path: &str) -> Result<(), Error> {
-    let mut reader = csv::Reader::from_path(path)?;
+impl Display for Record {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Name: {}\nType: {}\nHP: {}\nAttack: {}\nDefense: {}\n------------------",
+            self.name, self.pokemon_type, self.hp, self.attack, self.defense
+        )
+    }
+}
+
+fn read_from_file(path: &str) -> Result<Vec<Record>, Error> {
+    let mut reader = csv::Reader::from_path(path).map_err(|error| {
+        eprintln!("Failed to read file: {}", error);
+        error
+    })?;
+
+    let mut records = Vec::<Record>::new();
 
     for record in reader.deserialize::<Record>() {
         let result = record?;
-        println!("Name: {}", result.name);
-        println!("Type: {}", result.pokemon_type);
-        println!("HP: {}", result.hp);
-        println!("Attack: {}", result.attack);
-        println!("Defense: {}", result.defense);
-        println!("------------------");
+        println!("{}", result);
+        records.push(result);
     }
 
-    Ok(())
+    Ok(records)
 }
 
 fn get_path_from_user(default: &str) -> String {
@@ -38,11 +52,11 @@ fn get_path_from_user(default: &str) -> String {
         .read_line(&mut path)
         .expect("Failed to read line");
 
-    if path.trim() == "" {
-        return default.to_string();
+    if path.trim().is_empty() {
+        default.to_string()
+    } else {
+        path.trim().to_string()
     }
-
-    path.trim().to_string()
 }
 
 fn main() {
